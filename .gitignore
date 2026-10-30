@@ -1,0 +1,7 @@
+node_modules/
+.env
+# employee data: never commit
+*.xlsx
+*.xls
+*.csv
+data/

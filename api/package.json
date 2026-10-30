@@ -1,0 +1,10 @@
+{
+  "name": "hrsuccess-api",
+  "private": true,
+  "scripts": {
+    "start": "node --env-file=../.env server.js"
+  },
+  "dependencies": {
+    "mssql": "^12.7.0"
+  }
+}

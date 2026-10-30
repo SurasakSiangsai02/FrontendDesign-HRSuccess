@@ -1,0 +1,8 @@
+{
+  "name": "attg-hrsuccess",
+  "private": true,
+  "scripts": {
+    "postinstall": "npm install --prefix api",
+    "dev": "node dev.js"
+  }
+}

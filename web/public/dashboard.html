@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dashboard · ATTG HRSuccess [HRS]</title>
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: "Segoe UI", Tahoma, "Noto Sans Thai", system-ui, sans-serif; color: #1f2937; background: #f4f8fb; }
+  header { display: flex; align-items: center; gap: 12px; padding: 12px 24px; color: #fff; background: linear-gradient(90deg, #0078D4, #00B7C3); }
+  header b { font-size: 18px; } header .sp { flex: 1; }
+  header button { border: 1px solid rgba(255,255,255,.6); background: transparent; color: #fff; border-radius: 999px; padding: 6px 14px; cursor: pointer; font: inherit; }
+  .badge { font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 999px; background: rgba(255,255,255,.25); }
+  main { padding: 0 24px 24px; max-width: 1200px; margin: auto; }
+  .card { background: #fff; border: 1px solid #e5eef5; border-radius: 12px; padding: 16px; margin-top: 16px; }
+  h3 { margin: 0 0 12px; color: #0078D4; }
+  table { border-collapse: collapse; width: 100%; font-size: 14px; }
+  th, td { text-align: left; padding: 6px 8px; border-bottom: 1px solid #f1f5f9; }
+  th { color: #64748b; font-weight: 600; }
+  .bar { display: flex; height: 14px; background: #e6f6f8; border-radius: 3px; min-width: 160px; }
+  .bar span { background: linear-gradient(90deg, #0078D4, #00B7C3); border-radius: 3px; }
+  #msg { color: #b91c1c; }
+</style>
+</head>
+<body>
+<header>
+  <b>HRS</b><span>ATTG HRSuccess</span><span class="sp"></span>
+  <span id="who"></span><span class="badge" id="role"></span>
+  <button type="button" id="logout">ออกจากระบบ</button>
+</header>
+<main>
+  <p id="msg"></p>
+  <div class="card">
+    <h3>วันลาพักร้อนตามส่วนงาน (ใช้ไป / สิทธิ)</h3>
+    <table><thead><tr><th>ส่วนงาน</th><th>คน</th><th>ใช้ไป/สิทธิ (วัน)</th><th></th></tr></thead><tbody id="dept"></tbody></table>
+  </div>
+  <div class="card">
+    <h3>รายคน (<span id="count"></span> คน)</h3>
+    <table><thead><tr><th>UserID</th><th>ชื่อ</th><th>ตำแหน่ง</th><th>ส่วน</th><th>ใช้ไป/สิทธิ</th><th>คงเหลือ</th></tr></thead><tbody id="people"></tbody></table>
+  </div>
+</main>
+<script>
+const $ = (id) => document.getElementById(id);
+const ROLE_LABEL = { superadmin: 'Super Admin', admin: 'Admin', manager: 'Manager', user: 'User' };
+const token = sessionStorage.getItem('hrs.token');
+const toLogin = () => { sessionStorage.removeItem('hrs.token'); location.replace('/'); };
+if (!token) toLogin();
+$('logout').onclick = toLogin;
+
+function row(cells) {
+  const tr = document.createElement('tr');
+  for (const c of cells) { const td = document.createElement('td'); c instanceof Node ? td.append(c) : td.textContent = c ?? ''; tr.append(td); }
+  return tr;
+}
+function bar(used, total) {
+  const b = document.createElement('div'); b.className = 'bar';
+  const s = document.createElement('span'); s.style.width = (total ? Math.min(100, used / total * 100) : 0) + '%';
+  b.title = `${used} / ${total}`; b.append(s); return b;
+}
+
+(async () => {
+  const res = await fetch('/api/dashboard', { headers: { Authorization: 'Bearer ' + token } });
+  const d = await res.json();
+  if (res.status === 401 || res.status === 403) { alert(d.error); return toLogin(); }
+  if (!res.ok) throw new Error(d.error);
+  $('who').textContent = `${d.me.Fname_TH} ${d.me.Lname_TH}`;
+  $('role').textContent = ROLE_LABEL[d.me.Role];
+  $('count').textContent = d.people.length;
+  $('dept').replaceChildren(...d.byDepartment.map((x) => row([x.Department, x.Headcount, `${x.Used} / ${x.Entitled}`, bar(x.Used, x.Entitled)])));
+  $('people').replaceChildren(...d.people.map((x) => row([x.UserID, `${x.Fname_TH} ${x.Lname_TH}`, x.Position_TH, x.Department_TH, `${x.Used} / ${x.Entitled}`, x.Entitled - x.Used])));
+})().catch((e) => { $('msg').textContent = e.message; });
+</script>
+</body>
+</html>
